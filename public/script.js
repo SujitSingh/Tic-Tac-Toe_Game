@@ -6,7 +6,10 @@ export default class TicTacToeGameClient {
     this.dom = {
       lobbyDiv: document.getElementById('lobby'),
       gameDiv: document.getElementById('game-container'),
+      startActionsDiv: document.getElementById('start-actions'),
+      cancelActionsDiv: document.getElementById('cancel-actions'),
       startMatchBtn: document.getElementById('start-match-search'),
+      startCpuMatchBtn: document.getElementById('start-cpu-match'),
       cancelGameSearchBtn: document.getElementById('cancel-game-search'),
       gameBoardDiv: document.getElementById('game-board'),
       playerInfo: document.getElementById('player-info'),
@@ -42,9 +45,18 @@ export default class TicTacToeGameClient {
   initGameEventListeners() {
     this.dom.startMatchBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      this.dom.startMatchBtn.classList.add('hidden');
-      this.dom.cancelGameSearchBtn.classList.remove('hidden');
+      this.dom.startActionsDiv.classList.add('hidden');
+      this.dom.cancelActionsDiv.classList.remove('hidden');
+
       this.socket.emit('search_match', (data) => this.handleRoomAssignment(data));
+    });
+
+    this.dom.startCpuMatchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.dom.startActionsDiv.classList.add('hidden');
+      this.dom.cancelActionsDiv.classList.remove('hidden');
+
+      this.socket.emit('start_cpu_game', (data) => this.handleRoomAssignment(data));
     });
 
     this.dom.cancelGameSearchBtn.addEventListener('click', (e) => {
@@ -53,8 +65,8 @@ export default class TicTacToeGameClient {
         this.socket.emit('cancel_search', this.currentRoomId);
       }
       this.currentRoomId = null;
-      this.dom.cancelGameSearchBtn.classList.add('hidden');
-      this.dom.startMatchBtn.classList.remove('hidden');
+      this.dom.cancelActionsDiv.classList.add('hidden');
+      this.dom.startActionsDiv.classList.remove('hidden');
     });
 
     this.dom.gameBoardDiv.addEventListener('click', (e) => {
@@ -64,7 +76,7 @@ export default class TicTacToeGameClient {
       if (cell.classList.contains('cell') && !cell.textContent) {
         const index = parseInt(cell.getAttribute('data-index'));
 
-        this.socket.emit('make_move', { roomId: this.currentRoomId, index });
+        this.socket.emit('player_move', { roomId: this.currentRoomId, index });
       }
     });
 
@@ -124,12 +136,16 @@ export default class TicTacToeGameClient {
       this.dom.turnInfo.textContent = message;
     });
 
-    this.socket.on('error', (message) => {
-      this.stopCountdown();
-      alert(message);
+    this.socket.on('error', (data) => {
+      const { message, reload, toHome } = data || {};
 
-      if (message === 'Room not found') {
-        window.history.pushState(null, '', '/');
+      this.stopCountdown();
+      if (message) alert(message);
+
+      if (toHome) {
+        window.location.href = '/';
+      } else if (reload) {
+        window.location.reload();
       }
     });
   }
@@ -161,8 +177,8 @@ export default class TicTacToeGameClient {
     if (playerCount > 1 && !this.dom.lobbyDiv.classList.contains('hidden')) {
       this.dom.lobbyDiv.classList.add('hidden');
       this.dom.gameDiv.classList.remove('hidden');
-      this.dom.startMatchBtn.classList.remove('hidden');
-      this.dom.cancelGameSearchBtn.classList.add('hidden');
+      this.dom.startActionsDiv.classList.remove('hidden');
+      this.dom.cancelActionsDiv.classList.add('hidden');
 
       if (window.location.pathname === '/') {
         window.history.pushState(null, '', `/${encodeURIComponent(this.currentRoomId)}`);

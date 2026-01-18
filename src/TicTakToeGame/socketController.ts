@@ -8,6 +8,7 @@ interface GameRoomData {
   players: Record<string, Player>; // socketId -> 'X' or 'O'
   ready: Record<string, boolean>; // socketId -> true/false
   timeout?: NodeJS.Timeout;
+  isCpuGame?: boolean;
 }
 
 class TicTacToeSocketController {
@@ -23,9 +24,10 @@ class TicTacToeSocketController {
     console.log('A user connected:', socket.id);
 
     socket.on('search_match', (callback) => this.handleSearchMatch(socket, callback));
+    socket.on('start_cpu_game', (callback) => this.handleStartCpuGame(socket, callback));
     socket.on('cancel_search', (roomId: string) => this.handleCancelSearch(socket, roomId));
     socket.on('join_room', (roomId: string, callback) => this.handleJoinRoom(socket, roomId, callback));
-    socket.on('make_move', (data) => this.handleMakeMove(socket, data));
+    socket.on('player_move', (data) => this.handlePlayerMove(socket, data));
     socket.on('resign_game', (data) => this.handleResignGame(socket, data));
     socket.on('leave_room', (roomId: string) => this.handleLeaveRoom(socket, roomId));
     socket.on('disconnect', () => this.handleDisconnect(socket));
@@ -36,7 +38,7 @@ class TicTacToeSocketController {
     const waitingRoomId = Object.keys(this.gameRooms).find((id) => {
       const room = this.gameRooms[id];
 
-      return !room.game.endReason && !room.timeout && Object.keys(room.players).length === 1;
+      return !room.isCpuGame && !room.game.endReason && !room.timeout && Object.keys(room.players).length === 1;
     });
 
     let roomId: string;
@@ -53,12 +55,19 @@ class TicTacToeSocketController {
     } else {
       // create a new room
       roomId = socket.id;
-      this.gameRooms[roomId] = { game: new TicTakToeGame(), players: {}, ready: {} };
+
+      this.gameRooms[roomId] = {
+        game: new TicTakToeGame(),
+        players: {},
+        ready: {},
+      };
+
       assignedPlayer = 'X';
       console.log(`User ${socket.id} created and joined room ${roomId} as ${assignedPlayer}`);
     }
 
     const room = this.gameRooms[roomId];
+
     room.players[socket.id] = assignedPlayer;
     room.ready[socket.id] = true;
 
@@ -66,6 +75,24 @@ class TicTacToeSocketController {
     socket.join(roomId);
 
     if (typeof callback === 'function') callback({ player: assignedPlayer, roomId });
+
+    this.emitGameState(roomId);
+  }
+
+  private handleStartCpuGame(socket: Socket, callback: (data: { player: Player; roomId: string }) => void) {
+    const roomId = socket.id;
+
+    this.gameRooms[roomId] = {
+      game: new TicTakToeGame(),
+      players: { [socket.id]: 'X' },
+      ready: { [socket.id]: true },
+      isCpuGame: true,
+    };
+
+    this.socketToRoom[socket.id] = roomId;
+    socket.join(roomId);
+
+    if (typeof callback === 'function') callback({ player: 'X', roomId });
 
     this.emitGameState(roomId);
   }
@@ -96,7 +123,12 @@ class TicTacToeSocketController {
     const room = this.gameRooms[roomId];
 
     if (!room) {
-      socket.emit('error', 'Room not found');
+      socket.emit('error', { message: 'Room not found', toHome: true });
+      return;
+    }
+
+    if (room.isCpuGame && Object.keys(room.players).length >= 1) {
+      socket.emit('error', { message: 'Cannot join a CPU game' });
       return;
     }
 
@@ -108,7 +140,7 @@ class TicTacToeSocketController {
     const playerCount = Object.keys(room.players).length;
 
     if (playerCount >= 2) {
-      socket.emit('error', 'Room is full');
+      socket.emit('error', { message: 'Room is full' });
       return;
     }
 
@@ -128,36 +160,49 @@ class TicTacToeSocketController {
     console.log(`User ${socket.id} joined room ${roomId} as ${assignedPlayer}`);
   }
 
-  private handleMakeMove(socket: Socket, { roomId, index }: { roomId: string; index: number }) {
+  private handlePlayerMove(socket: Socket, { roomId, index }: { roomId: string; index: number }) {
     const room = this.gameRooms[roomId];
-    if (!room) return;
+    if (!room) {
+      socket.emit('error', { message: 'This match is no longer valid. Reload your game.', reload: true });
+      return;
+    }
 
-    if (Object.keys(room.players).length < 2) {
-      socket.emit('error', 'Waiting for opponent');
+    if (!room.isCpuGame && Object.keys(room.players).length < 2) {
+      socket.emit('error', { message: 'Waiting for opponent' });
       return;
     }
 
     const playersInRoom = Object.keys(room.players);
-    const allReady = playersInRoom.length === 2 && playersInRoom.every((id) => room.ready[id]);
 
-    if (!allReady) {
-      return; // ignore moves if not all players are ready
-    }
+    const allReady = room.isCpuGame
+      ? playersInRoom.every((id) => room.ready[id])
+      : playersInRoom.length === 2 && playersInRoom.every((id) => room.ready[id]);
+
+    if (!allReady) return; // ignore moves if not all players are ready
 
     const player = room.players[socket.id];
     if (player !== room.game.turn) {
-      socket.emit('error', 'Not your turn');
+      socket.emit('error', { message: 'Not your turn' });
       return;
     }
 
     const success = room.game.makeMove(index);
     if (success) {
       this.emitGameState(roomId);
+
+      if (room.isCpuGame && !room.game.endReason) {
+        this.makeCpuMove(roomId);
+      }
     }
   }
 
   private handleResignGame(socket: Socket, { roomId }: { roomId: string }) {
     const room = this.gameRooms[roomId];
+    if (!room) {
+      socket.emit('error', { message: 'This match is no longer valid.', toHome: true });
+      return;
+    }
+
     if (room && !room.game.winner) {
       const player = room.players[socket.id];
       if (player) {
@@ -240,10 +285,32 @@ class TicTacToeSocketController {
     }
   }
 
+  private makeCpuMove(roomId: string) {
+    const room = this.gameRooms[roomId];
+    if (!room || !room.isCpuGame) return;
+
+    setTimeout(() => {
+      if (room.game.endReason) return;
+
+      // select indexes of free cells
+      const emptyIndices: number[] = room.game.board.reduce((acc, val, idx) => {
+        if (val === null) acc.push(idx);
+        return acc;
+      }, []);
+
+      if (emptyIndices.length > 0) {
+        const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+        room.game.makeMove(randomIndex);
+        this.emitGameState(roomId);
+      }
+    }, 500);
+  }
+
   private handleResetGame(socket: Socket, roomId: string) {
     const room = this.gameRooms[roomId];
     if (room) {
-      if (Object.keys(room.players).length < 2) return;
+      if (!room.isCpuGame && Object.keys(room.players).length < 2) return;
       room.game.reset();
 
       this.emitGameState(roomId);
@@ -269,7 +336,7 @@ class TicTacToeSocketController {
     this.io.to(roomId).emit('game_state', {
       ...room.game,
       ready: readyState,
-      playerCount: Object.keys(room.players).length,
+      playerCount: room.isCpuGame ? 2 : Object.keys(room.players).length,
     });
   }
 }
