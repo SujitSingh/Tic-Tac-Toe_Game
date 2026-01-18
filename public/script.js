@@ -2,22 +2,25 @@ export default class TicTacToeGameClient {
   constructor() {
     this.socket = io();
 
-    // DOM Elements
-    this.lobbyDiv = document.getElementById('lobby');
-    this.gameDiv = document.getElementById('game-container');
-    this.startMatchBtn = document.getElementById('start-match-search');
-    this.cancelGameSearchBtn = document.getElementById('cancel-game-search');
-    this.gameBoardDiv = document.getElementById('game-board');
-    this.playerInfo = document.getElementById('player-info');
-    this.turnInfo = document.getElementById('turn-info');
-    this.roomDisplay = document.getElementById('room-display');
-    this.resetBtn = document.getElementById('reset-btn');
-    this.resignBtn = document.getElementById('resign-btn');
-    this.gameToLobbyBtn = document.getElementById('game-to-lobby-btn');
-    this.timerDisplay = document.getElementById('timer-display');
-    this.resultsDiv = document.getElementById('results');
-    this.resultMessage = document.getElementById('result-message');
-    this.backToLobbyBtn = document.getElementById('back-to-lobby-btn');
+    // DOM elements
+    this.dom = {
+      lobbyDiv: document.getElementById('lobby'),
+      gameDiv: document.getElementById('game-container'),
+      startMatchBtn: document.getElementById('start-match-search'),
+      cancelGameSearchBtn: document.getElementById('cancel-game-search'),
+      gameBoardDiv: document.getElementById('game-board'),
+      playerInfo: document.getElementById('player-info'),
+      turnInfo: document.getElementById('turn-info'),
+      roomDisplay: document.getElementById('room-display'),
+      resetBtn: document.getElementById('reset-btn'),
+      resignBtn: document.getElementById('resign-btn'),
+      gameToLobbyBtn: document.getElementById('game-to-lobby-btn'),
+      timerDisplay: document.getElementById('timer-display'),
+      resultsDiv: document.getElementById('results'),
+      resultMessage: document.getElementById('result-message'),
+      backToLobbyBtn: document.getElementById('back-to-lobby-btn'),
+      cells: document.querySelectorAll('.cell'),
+    };
 
     // game states
     this.myPlayer = null;
@@ -36,24 +39,24 @@ export default class TicTacToeGameClient {
   }
 
   initGameEventListeners() {
-    this.startMatchBtn.addEventListener('click', (e) => {
+    this.dom.startMatchBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      this.startMatchBtn.classList.add('hidden');
-      this.cancelGameSearchBtn.classList.remove('hidden');
+      this.dom.startMatchBtn.classList.add('hidden');
+      this.dom.cancelGameSearchBtn.classList.remove('hidden');
       this.socket.emit('search_match', (data) => this.handleRoomAssignment(data));
     });
 
-    this.cancelGameSearchBtn.addEventListener('click', (e) => {
+    this.dom.cancelGameSearchBtn.addEventListener('click', (e) => {
       e.preventDefault();
       if (this.currentRoomId) {
         this.socket.emit('cancel_search', this.currentRoomId);
       }
       this.currentRoomId = null;
-      this.cancelGameSearchBtn.classList.add('hidden');
-      this.startMatchBtn.classList.remove('hidden');
+      this.dom.cancelGameSearchBtn.classList.add('hidden');
+      this.dom.startMatchBtn.classList.remove('hidden');
     });
 
-    this.gameBoardDiv.addEventListener('click', (e) => {
+    this.dom.gameBoardDiv.addEventListener('click', (e) => {
       if (!this.isMyTurn) return;
 
       const cell = e.target;
@@ -64,35 +67,35 @@ export default class TicTacToeGameClient {
       }
     });
 
-    this.resetBtn.addEventListener('click', () => {
+    this.dom.resetBtn.addEventListener('click', () => {
       this.socket.emit('reset_game', this.currentRoomId);
     });
 
-    this.resignBtn.addEventListener('click', () => {
+    this.dom.resignBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to resign?')) {
         this.socket.emit('resign_game', { roomId: this.currentRoomId });
       }
     });
 
-    this.gameToLobbyBtn.addEventListener('click', () => {
+    this.dom.gameToLobbyBtn.addEventListener('click', () => {
       if (this.currentRoomId) {
         this.socket.emit('leave_room', this.currentRoomId);
       }
-      this.gameDiv.classList.add('hidden');
-      this.resultsDiv.classList.add('hidden');
-      this.lobbyDiv.classList.remove('hidden');
+      this.dom.gameDiv.classList.add('hidden');
+      this.dom.resultsDiv.classList.add('hidden');
+      this.dom.lobbyDiv.classList.remove('hidden');
       this.currentRoomId = null;
       this.myPlayer = null;
 
       window.history.pushState(null, '', '/');
     });
 
-    this.backToLobbyBtn.addEventListener('click', () => {
+    this.dom.backToLobbyBtn.addEventListener('click', () => {
       if (this.currentRoomId) {
         this.socket.emit('leave_room', this.currentRoomId);
       }
-      this.resultsDiv.classList.add('hidden');
-      this.lobbyDiv.classList.remove('hidden');
+      this.dom.resultsDiv.classList.add('hidden');
+      this.dom.lobbyDiv.classList.remove('hidden');
       this.currentRoomId = null;
       this.myPlayer = null;
 
@@ -113,11 +116,11 @@ export default class TicTacToeGameClient {
 
     this.socket.on('game_end_timeout', (message) => {
       this.stopCountdown();
-      this.gameBoardDiv.classList.add('disabled');
-      this.resignBtn.classList.add('hidden');
-      this.gameToLobbyBtn.classList.remove('hidden');
+      this.dom.gameBoardDiv.classList.add('disabled');
+      this.dom.resignBtn.classList.add('hidden');
+      this.dom.gameToLobbyBtn.classList.remove('hidden');
 
-      this.turnInfo.textContent = message;
+      this.dom.turnInfo.textContent = message;
     });
 
     this.socket.on('error', (message) => {
@@ -133,14 +136,12 @@ export default class TicTacToeGameClient {
   handleRoomAssignment({ player, roomId }) {
     this.myPlayer = player;
     this.currentRoomId = roomId;
-    this.roomDisplay.textContent = `Room: ${roomId}`;
-    this.playerInfo.textContent = `You are Player: ${player}`;
+    this.dom.roomDisplay.textContent = `Room: ${roomId}`;
+    this.dom.playerInfo.textContent = `You are Player: ${player}`;
   }
 
   updateBoard(board, winningLine) {
-    const cells = document.querySelectorAll('.cell');
-
-    cells.forEach((cell, index) => {
+    this.dom.cells.forEach((cell, index) => {
       const value = board[index];
       cell.textContent = value || '';
       cell.classList.remove('X', 'O', 'win');
@@ -156,11 +157,11 @@ export default class TicTacToeGameClient {
   updateStatus(gameState) {
     const { turn, winner, endReason, playerCount, ready } = gameState;
 
-    if (playerCount > 1 && !this.lobbyDiv.classList.contains('hidden')) {
-      this.lobbyDiv.classList.add('hidden');
-      this.gameDiv.classList.remove('hidden');
-      this.startMatchBtn.classList.remove('hidden');
-      this.cancelGameSearchBtn.classList.add('hidden');
+    if (playerCount > 1 && !this.dom.lobbyDiv.classList.contains('hidden')) {
+      this.dom.lobbyDiv.classList.add('hidden');
+      this.dom.gameDiv.classList.remove('hidden');
+      this.dom.startMatchBtn.classList.remove('hidden');
+      this.dom.cancelGameSearchBtn.classList.add('hidden');
 
       if (window.location.pathname === '/') {
         window.history.pushState(null, '', `/${encodeURIComponent(this.currentRoomId)}`);
@@ -169,19 +170,19 @@ export default class TicTacToeGameClient {
 
     if (winner) {
       this.isMyTurn = false;
-      this.gameBoardDiv.classList.add('disabled');
-      this.resignBtn.classList.add('hidden');
-      this.gameToLobbyBtn.classList.remove('hidden');
+      this.dom.gameBoardDiv.classList.add('disabled');
+      this.dom.resignBtn.classList.add('hidden');
+      this.dom.gameToLobbyBtn.classList.remove('hidden');
 
       if (playerCount < 2) {
-        this.resetBtn.classList.add('hidden');
+        this.dom.resetBtn.classList.add('hidden');
       } else {
-        this.resetBtn.classList.remove('hidden');
+        this.dom.resetBtn.classList.remove('hidden');
       }
 
       if (winner === 'Draw') {
-        this.turnInfo.textContent = "Game Over: It's a Draw!";
-        this.turnInfo.style.color = 'orange';
+        this.dom.turnInfo.textContent = "Game Over: It's a Draw!";
+        this.dom.turnInfo.style.color = 'orange';
       } else {
         const isWinner = winner === this.myPlayer;
         let reasonText = '';
@@ -189,31 +190,31 @@ export default class TicTacToeGameClient {
           reasonText = isWinner ? '(Opponent Resigned)' : '(You Resigned)';
         }
 
-        this.turnInfo.textContent = isWinner ? `You Won! ${reasonText}` : `You Lost! ${reasonText}`;
-        this.turnInfo.style.color = isWinner ? '#61dafb' : '#ff6b6b';
+        this.dom.turnInfo.textContent = isWinner ? `You Won! ${reasonText}` : `You Lost! ${reasonText}`;
+        this.dom.turnInfo.style.color = isWinner ? '#61dafb' : '#ff6b6b';
       }
     } else {
-      this.resetBtn.classList.add('hidden');
-      this.resignBtn.classList.remove('hidden');
-      this.gameToLobbyBtn.classList.add('hidden');
+      this.dom.resetBtn.classList.add('hidden');
+      this.dom.resignBtn.classList.remove('hidden');
+      this.dom.gameToLobbyBtn.classList.add('hidden');
       this.isMyTurn = turn === this.myPlayer;
 
       if (this.isMyTurn) {
-        this.turnInfo.textContent = 'Your Turn';
-        this.turnInfo.style.color = '#61dafb';
-        this.gameBoardDiv.classList.remove('disabled');
+        this.dom.turnInfo.textContent = 'Your Turn';
+        this.dom.turnInfo.style.color = '#61dafb';
+        this.dom.gameBoardDiv.classList.remove('disabled');
       } else {
-        this.turnInfo.textContent = `Opponent's Turn (${turn})`;
-        this.turnInfo.style.color = '#ccc';
-        this.gameBoardDiv.classList.add('disabled');
+        this.dom.turnInfo.textContent = `Opponent's Turn (${turn})`;
+        this.dom.turnInfo.style.color = '#ccc';
+        this.dom.gameBoardDiv.classList.add('disabled');
       }
     }
   }
 
   startCountdown(seconds) {
     let remaining = seconds;
-    this.timerDisplay.textContent = `Opponent disconnected. Waiting ${remaining}s...`;
-    this.timerDisplay.classList.remove('hidden');
+    this.dom.timerDisplay.textContent = `Opponent disconnected. Waiting ${remaining}s...`;
+    this.dom.timerDisplay.classList.remove('hidden');
 
     if (this.countdownInterval) clearInterval(this.countdownInterval);
 
@@ -222,7 +223,7 @@ export default class TicTacToeGameClient {
       if (remaining <= 0) {
         this.stopCountdown();
       } else {
-        this.timerDisplay.textContent = `Opponent disconnected. Waiting ${remaining}s...`;
+        this.dom.timerDisplay.textContent = `Opponent disconnected. Waiting ${remaining}s...`;
       }
     }, 1000);
   }
@@ -232,7 +233,7 @@ export default class TicTacToeGameClient {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
     }
-    this.timerDisplay.classList.add('hidden');
-    this.timerDisplay.textContent = '';
+    this.dom.timerDisplay.classList.add('hidden');
+    this.dom.timerDisplay.textContent = '';
   }
 }
