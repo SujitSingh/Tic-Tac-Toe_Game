@@ -34,6 +34,7 @@ export default class TicTacToeGameClient {
     const pathRoomId = window.location.pathname.substring(1);
     if (pathRoomId) {
       const roomId = decodeURIComponent(pathRoomId);
+      // join same room on page reload
       this.socket.emit('join_room', roomId, (data) => this.handleRoomAssignment(data));
     }
   }

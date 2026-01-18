@@ -32,70 +32,42 @@ class TicTacToeSocketController {
     socket.on('reset_game', (roomId: string) => this.handleResetGame(socket, roomId));
   }
 
-  private handleSearchMatch(socket: Socket, callback: any) {
-    const waitingRoomId = Object.keys(this.gameRooms).find(
-      (id) => Object.keys(this.gameRooms[id].players).length === 1 && !this.gameRooms[id].timeout
-    );
+  private handleSearchMatch(socket: Socket, callback: (data: { player: Player; roomId: string }) => void) {
+    const waitingRoomId = Object.keys(this.gameRooms).find((id) => {
+      const room = this.gameRooms[id];
+
+      return !room.game.endReason && !room.timeout && Object.keys(room.players).length === 1;
+    });
+
+    let roomId: string;
+    let assignedPlayer: Player;
 
     if (waitingRoomId) {
       // join the waiting room
-      const room = this.gameRooms[waitingRoomId];
-      const roomId = waitingRoomId;
+      roomId = waitingRoomId;
+      const room = this.gameRooms[roomId];
 
       const existingPlayers = Object.values(room.players);
-      const assignedPlayer: Player = existingPlayers.includes('X') ? 'O' : 'X';
-
-      room.players[socket.id] = assignedPlayer;
-      room.ready[socket.id] = true;
-      this.socketToRoom[socket.id] = roomId;
-
-      socket.join(roomId);
-      if (typeof callback === 'function') callback({ player: assignedPlayer, roomId });
-
-      const readyState = Object.entries(room.players).reduce(
-        (acc, [id, player]) => {
-          acc[player] = room.ready[id] || false;
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
-
-      this.io.to(roomId).emit('game_state', {
-        ...room.game,
-        ready: readyState,
-        playerCount: Object.keys(room.players).length,
-      });
-
+      assignedPlayer = existingPlayers.includes('X') ? 'O' : 'X';
       console.log(`User ${socket.id} joined room ${roomId} as ${assignedPlayer}`);
     } else {
       // create a new room
-      const roomId = socket.id;
-      this.gameRooms[roomId] = {
-        game: new TicTakToeGame(),
-        players: {},
-        ready: {},
-      };
-      const room = this.gameRooms[roomId];
-
-      const assignedPlayer: Player = 'X';
-
-      room.players[socket.id] = assignedPlayer;
-      room.ready[socket.id] = true;
-      this.socketToRoom[socket.id] = roomId;
-
-      socket.join(roomId);
-
-      if (typeof callback === 'function') callback({ player: assignedPlayer, roomId });
-
-      const readyState = { [assignedPlayer]: true };
-
-      this.io.to(roomId).emit('game_state', {
-        ...room.game,
-        ready: readyState,
-        playerCount: 1,
-      });
+      roomId = socket.id;
+      this.gameRooms[roomId] = { game: new TicTakToeGame(), players: {}, ready: {} };
+      assignedPlayer = 'X';
       console.log(`User ${socket.id} created and joined room ${roomId} as ${assignedPlayer}`);
     }
+
+    const room = this.gameRooms[roomId];
+    room.players[socket.id] = assignedPlayer;
+    room.ready[socket.id] = true;
+
+    this.socketToRoom[socket.id] = roomId;
+    socket.join(roomId);
+
+    if (typeof callback === 'function') callback({ player: assignedPlayer, roomId });
+
+    this.emitGameState(roomId);
   }
 
   private handleCancelSearch(socket: Socket, roomId: string) {
@@ -120,7 +92,7 @@ class TicTacToeSocketController {
     }
   }
 
-  private handleJoinRoom(socket: Socket, roomId: string, callback: any) {
+  private handleJoinRoom(socket: Socket, roomId: string, callback: (data: { player: Player; roomId: string }) => void) {
     const room = this.gameRooms[roomId];
 
     if (!room) {
@@ -151,24 +123,7 @@ class TicTacToeSocketController {
     socket.join(roomId);
     if (typeof callback === 'function') callback({ player: assignedPlayer, roomId });
 
-    // send initial state
-    const readyState = Object.entries(room.players).reduce(
-      (acc, [id, player]) => {
-        acc[player] = room.ready[id] || false;
-        return acc;
-      },
-      {} as Record<string, boolean>
-    );
-
-    this.io.to(roomId).emit('game_state', {
-      board: room.game.board,
-      turn: room.game.turn,
-      winner: room.game.winner,
-      winningLine: room.game.winningLine,
-      endReason: room.game.endReason,
-      ready: readyState,
-      playerCount: Object.keys(room.players).length,
-    });
+    this.emitGameState(roomId);
 
     console.log(`User ${socket.id} joined room ${roomId} as ${assignedPlayer}`);
   }
@@ -197,23 +152,7 @@ class TicTacToeSocketController {
 
     const success = room.game.makeMove(index);
     if (success) {
-      const readyState = Object.entries(room.players).reduce(
-        (acc, [id, player]) => {
-          acc[player] = room.ready[id] || false;
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
-
-      this.io.to(roomId).emit('game_state', {
-        board: room.game.board,
-        turn: room.game.turn,
-        winner: room.game.winner,
-        winningLine: room.game.winningLine,
-        endReason: room.game.endReason,
-        ready: readyState,
-        playerCount: Object.keys(room.players).length,
-      });
+      this.emitGameState(roomId);
     }
   }
 
@@ -224,23 +163,8 @@ class TicTacToeSocketController {
       if (player) {
         room.game.winner = player === 'X' ? 'O' : 'X';
         room.game.endReason = 'Resignation';
-        const readyState = Object.entries(room.players).reduce(
-          (acc, [id, player]) => {
-            acc[player] = room.ready[id] || false;
-            return acc;
-          },
-          {} as Record<string, boolean>
-        );
 
-        this.io.to(roomId).emit('game_state', {
-          board: room.game.board,
-          turn: room.game.turn,
-          winner: room.game.winner,
-          winningLine: room.game.winningLine,
-          endReason: room.game.endReason,
-          ready: readyState,
-          playerCount: Object.keys(room.players).length,
-        });
+        this.emitGameState(roomId);
       }
     }
   }
@@ -269,19 +193,7 @@ class TicTacToeSocketController {
           this.io.to(roomId).emit('game_end_timeout', 'Opponent left the room. You Win!');
         }
 
-        const readyState = Object.entries(room.players).reduce(
-          (acc, [id, player]) => {
-            acc[player] = room.ready[id] || false;
-            return acc;
-          },
-          {} as Record<string, boolean>
-        );
-
-        this.io.to(roomId).emit('game_state', {
-          ...room.game,
-          ready: readyState,
-          playerCount: Object.keys(room.players).length,
-        });
+        this.emitGameState(roomId);
       }
     }
   }
@@ -334,20 +246,31 @@ class TicTacToeSocketController {
       if (Object.keys(room.players).length < 2) return;
       room.game.reset();
 
-      const readyState = Object.entries(room.players).reduce(
-        (acc, [id, player]) => {
-          acc[player] = room.ready[id] || false;
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
-
-      this.io.to(roomId).emit('game_state', {
-        ...room.game,
-        ready: readyState,
-        playerCount: Object.keys(room.players).length,
-      });
+      this.emitGameState(roomId);
     }
+  }
+
+  private getPlayersReadyState(room: GameRoomData): Record<string, boolean> {
+    return Object.entries(room.players).reduce(
+      (acc, [id, player]) => {
+        acc[player] = room.ready[id] || false;
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
+  }
+
+  private emitGameState(roomId: string) {
+    const room = this.gameRooms[roomId];
+    if (!room) return;
+
+    const readyState = this.getPlayersReadyState(room);
+
+    this.io.to(roomId).emit('game_state', {
+      ...room.game,
+      ready: readyState,
+      playerCount: Object.keys(room.players).length,
+    });
   }
 }
 
