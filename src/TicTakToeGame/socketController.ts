@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { TicTakToeGame, Player } from './TicTakToeGame';
+import { TicTakToeGame, getPredefinedMove, Player } from './TicTakToeGame';
 
 const DISCONNECT_TIMEOUT = 15; // timeout seconds
 
@@ -292,16 +292,29 @@ class TicTacToeSocketController {
     setTimeout(() => {
       if (room.game.endReason) return;
 
-      // select indexes of free cells
-      const emptyIndices: number[] = room.game.board.reduce((acc, val, idx) => {
-        if (val === null) acc.push(idx);
-        return acc;
-      }, []);
+      // 50% chance to use predefined move selection logic
+      const usePredefined = Math.random() > 0.5;
 
-      if (emptyIndices.length > 0) {
-        const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      let moveIndex = -1;
 
-        room.game.makeMove(randomIndex);
+      if (usePredefined) {
+        moveIndex = getPredefinedMove(room.game.board, room.game.turn);
+      }
+
+      if (moveIndex === -1) {
+        // select indexes of free cells
+        const emptyIndices: number[] = room.game.board.reduce((acc, val, idx) => {
+          if (val === null) acc.push(idx);
+          return acc;
+        }, []);
+
+        if (emptyIndices.length > 0) {
+          moveIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        }
+      }
+
+      if (moveIndex !== -1) {
+        room.game.makeMove(moveIndex);
         this.emitGameState(roomId);
       }
     }, 500);
