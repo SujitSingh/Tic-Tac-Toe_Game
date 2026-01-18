@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tic-Tac-Toe Multiplayer</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Tic-Tac-Toe</h1>
+
+      <div id="lobby">
+        <button id="start-match-search">Start Match</button>
+        <button id="cancel-game-search" class="hidden">Cancel search ...</button>
+      </div>
+
+      <div id="game-container" class="hidden">
+        <div class="status-bar">
+          <p id="room-display"></p>
+          <p id="player-info">Connecting...</p>
+          <p id="turn-info">Waiting...</p>
+          <p id="timer-display" class="hidden"></p>
+        </div>
+
+        <div id="game-board" class="game-board">
+          <div class="cell" data-index="0"></div>
+          <div class="cell" data-index="1"></div>
+          <div class="cell" data-index="2"></div>
+          <div class="cell" data-index="3"></div>
+          <div class="cell" data-index="4"></div>
+          <div class="cell" data-index="5"></div>
+          <div class="cell" data-index="6"></div>
+          <div class="cell" data-index="7"></div>
+          <div class="cell" data-index="8"></div>
+        </div>
+
+        <button id="reset-btn" class="hidden">Play Again</button>
+        <button id="resign-btn" class="hidden">Resign</button>
+        <button id="game-to-lobby-btn" class="hidden">Back to Lobby</button>
+      </div>
+
+      <div id="results" class="hidden">
+        <h2 id="result-message"></h2>
+        <button id="back-to-lobby-btn">Back to Lobby</button>
+      </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module">
+      import TicTacToeGameClient from './script.js';
+
+      new TicTacToeGameClient(); // initialize game events
+    </script>
+  </body>
+</html>

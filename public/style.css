@@ -1,0 +1,148 @@
+:root {
+  --bg-color: #282c34;
+  --secondary-bg: #6c757d;
+  --text-color: white;
+  --btn-text-color: #282c34;
+  --primary-color: #61dafb;
+  --primary-hover: #64bee7;
+  --cell-bg: #444;
+  --cell-hover: #555;
+  --player-x: #61dafb;
+  --player-o: #ff6b6b;
+  --win-bg: #2c5e2e;
+  --success-bg: #28a745;
+  --success-hover: #2a9140;
+  --danger-bg: #dc3545;
+  --danger-hover: #c82333;
+  --warning-text: #ffcc00;
+}
+
+body {
+  font-family: 'Arial', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#lobby {
+  margin-top: 20px;
+}
+
+input {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 5px;
+  color: var(--btn-text-color);
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+}
+
+.status-bar {
+  margin-bottom: 20px;
+}
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  grid-template-rows: repeat(3, 100px);
+  gap: 5px;
+  margin: 0 auto;
+}
+
+.game-board.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.cell {
+  background-color: var(--cell-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cell:hover {
+  background-color: var(--cell-hover);
+}
+
+.cell.X {
+  color: var(--player-x);
+}
+
+.cell.O {
+  color: var(--player-o);
+}
+
+.cell.win {
+  background-color: var(--win-bg);
+  color: var(--text-color);
+}
+
+.success-btn {
+  background-color: var(--success-bg);
+  color: var(--text-color);
+}
+.success-btn:hover {
+  background-color: var(--success-hover);
+}
+
+#ready-btn {
+  margin-top: 20px;
+}
+
+#reset-btn {
+  margin-top: 20px;
+  background-color: var(--player-o);
+  color: var(--text-color);
+}
+
+#resign-btn {
+  margin-top: 20px;
+  background-color: var(--danger-bg);
+  color: var(--text-color);
+}
+
+#resign-btn:hover {
+  background-color: var(--danger-hover);
+}
+
+#game-to-lobby-btn {
+  margin-top: 20px;
+  background-color: var(--secondary-bg);
+  color: var(--text-color);
+}
+
+#timer-display {
+  color: var(--warning-text);
+  margin-top: 10px;
+}
