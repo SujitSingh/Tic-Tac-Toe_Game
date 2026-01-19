@@ -8,6 +8,8 @@ export default class TicTacToeGameClient {
       gameDiv: document.getElementById('game-container'),
       startActionsDiv: document.getElementById('start-actions'),
       cancelActionsDiv: document.getElementById('cancel-actions'),
+      cpuDifficultySelect: document.getElementById('cpu-difficulty'),
+      difficultyValue: document.getElementById('difficulty-value'),
       startMatchBtn: document.getElementById('start-match-search'),
       startCpuMatchBtn: document.getElementById('start-cpu-match'),
       cancelGameSearchBtn: document.getElementById('cancel-game-search'),
@@ -51,12 +53,18 @@ export default class TicTacToeGameClient {
       this.socket.emit('search_match', (data) => this.handleRoomAssignment(data));
     });
 
+    this.dom.cpuDifficultySelect.addEventListener('input', (e) => {
+      this.dom.difficultyValue.textContent = e.target.value;
+    });
+
     this.dom.startCpuMatchBtn.addEventListener('click', (e) => {
       e.preventDefault();
       this.dom.startActionsDiv.classList.add('hidden');
       this.dom.cancelActionsDiv.classList.remove('hidden');
 
-      this.socket.emit('start_cpu_game', (data) => this.handleRoomAssignment(data));
+      const cpuDifficulty = parseInt(this.dom.cpuDifficultySelect.value, 10);
+
+      this.socket.emit('start_cpu_game', { cpuDifficulty }, (data) => this.handleRoomAssignment(data));
     });
 
     this.dom.cancelGameSearchBtn.addEventListener('click', (e) => {

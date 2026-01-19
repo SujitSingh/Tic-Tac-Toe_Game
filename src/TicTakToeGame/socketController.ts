@@ -9,6 +9,7 @@ interface GameRoomData {
   ready: Record<string, boolean>; // socketId -> true/false
   timeout?: NodeJS.Timeout;
   isCpuGame?: boolean;
+  cpuDifficulty?: number;
 }
 
 class TicTacToeSocketController {
@@ -24,7 +25,7 @@ class TicTacToeSocketController {
     console.log('A user connected:', socket.id);
 
     socket.on('search_match', (callback) => this.handleSearchMatch(socket, callback));
-    socket.on('start_cpu_game', (callback) => this.handleStartCpuGame(socket, callback));
+    socket.on('start_cpu_game', (data, callback) => this.handleStartCpuGame(socket, data, callback));
     socket.on('cancel_search', (roomId: string) => this.handleCancelSearch(socket, roomId));
     socket.on('join_room', (roomId: string, callback) => this.handleJoinRoom(socket, roomId, callback));
     socket.on('player_move', (data) => this.handlePlayerMove(socket, data));
@@ -79,7 +80,11 @@ class TicTacToeSocketController {
     this.emitGameState(roomId);
   }
 
-  private handleStartCpuGame(socket: Socket, callback: (data: { player: Player; roomId: string }) => void) {
+  private handleStartCpuGame(
+    socket: Socket,
+    data: { cpuDifficulty: number },
+    callback: (data: { player: Player; roomId: string }) => void
+  ) {
     const roomId = socket.id;
 
     this.gameRooms[roomId] = {
@@ -87,6 +92,7 @@ class TicTacToeSocketController {
       players: { [socket.id]: 'X' },
       ready: { [socket.id]: true },
       isCpuGame: true,
+      cpuDifficulty: data?.cpuDifficulty || 1,
     };
 
     this.socketToRoom[socket.id] = roomId;
@@ -292,8 +298,12 @@ class TicTacToeSocketController {
     setTimeout(() => {
       if (room.game.endReason) return;
 
-      // 50% chance to use predefined move selection logic
-      const usePredefined = Math.random() > 0.5;
+      // probability based on CPU difficulty
+      const difficulty = room.cpuDifficulty || 1;
+      const probability = difficulty / 10;
+
+      // chance to use predefined move selection logic
+      const usePredefined = Math.random() < probability;
 
       let moveIndex = -1;
 

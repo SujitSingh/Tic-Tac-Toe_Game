@@ -12,6 +12,11 @@
 
       <div id="lobby">
         <div id="start-actions">
+          <div class="difficulty-range-selector">
+            <label for="cpu-difficulty">Computer player difficulty: <span id="difficulty-value">3</span></label>
+            <input type="range" id="cpu-difficulty" min="1" max="10" value="3" />
+          </div>
+
           <button id="start-match-search">Play vs Human</button>
           <button id="start-cpu-match">Play vs Computer</button>
         </div>

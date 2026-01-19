@@ -1,7 +1,7 @@
 :root {
   --bg-color: #282c34;
   --secondary-bg: #6c757d;
-  --text-color: white;
+  --text-gray: #ecf0f1;
   --btn-text-color: #282c34;
   --primary-color: #61dafb;
   --primary-hover: #64bee7;
@@ -20,7 +20,7 @@
 body {
   font-family: 'Arial', Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--bg-color);
-  color: var(--text-color);
+  color: var(--text-gray);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -41,10 +41,18 @@ body {
 }
 
 input {
-  padding: 10px;
   font-size: 16px;
   border-radius: 5px;
   border: none;
+}
+
+/* styles for range selector  */
+input[type='range'] {
+  width: 100%;
+  border-radius: 5px;
+  /* height: 8px;
+  outline: none;
+  -webkit-appearance: none; */
 }
 
 button {
@@ -58,13 +66,22 @@ button {
   font-weight: bold;
   margin-left: 10px;
 }
-
 button:hover {
   background-color: var(--primary-hover);
 }
 
 .status-bar {
   margin-bottom: 20px;
+}
+
+.difficulty-range-selector {
+  margin: 20px 0;
+  padding: 0 20px;
+}
+.difficulty-range-selector label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-gray);
 }
 
 .game-board {
@@ -105,12 +122,12 @@ button:hover {
 
 .cell.win {
   background-color: var(--win-bg);
-  color: var(--text-color);
+  color: var(--text-gray);
 }
 
 .success-btn {
   background-color: var(--success-bg);
-  color: var(--text-color);
+  color: var(--text-gray);
 }
 .success-btn:hover {
   background-color: var(--success-hover);
@@ -123,13 +140,13 @@ button:hover {
 #reset-btn {
   margin-top: 20px;
   background-color: var(--player-o);
-  color: var(--text-color);
+  color: var(--text-gray);
 }
 
 #resign-btn {
   margin-top: 20px;
   background-color: var(--danger-bg);
-  color: var(--text-color);
+  color: var(--text-gray);
 }
 
 #resign-btn:hover {
@@ -139,7 +156,7 @@ button:hover {
 #game-to-lobby-btn {
   margin-top: 20px;
   background-color: var(--secondary-bg);
-  color: var(--text-color);
+  color: var(--text-gray);
 }
 
 #timer-display {
