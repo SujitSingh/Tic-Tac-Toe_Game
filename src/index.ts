@@ -1,6 +1,3 @@
-import dotenvx from '@dotenvx/dotenvx';
-dotenvx.config();
-
 import path from 'path';
 import { createServer } from 'http';
 import express from 'express';
@@ -9,6 +6,8 @@ import { ticTakToeSocketHandlers } from './TicTakToeGame/socketController';
 
 const PORT = process.env.SERVER_PORT;
 const HOST = process.env.SERVER_HOST;
+const SERVER_PATH = `http://${HOST}:${PORT}`;
+
 const isDevelopment = process.env.NODE_ENV === '' || process.env.NODE_ENV === 'development';
 
 const app = express();
@@ -16,7 +15,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: isDevelopment ? `http://${HOST}:${PORT}` : null, // allow CORS for development
+    origin: isDevelopment ? SERVER_PATH : null, // allow CORS for development
   },
 });
 
@@ -33,5 +32,5 @@ app.use((req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`Server is running on port ${HOST}:${PORT}`);
+  console.log(`Server is listening on ${SERVER_PATH}`);
 });
