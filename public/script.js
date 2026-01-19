@@ -21,9 +21,6 @@ export default class TicTacToeGameClient {
       resignBtn: document.getElementById('resign-btn'),
       gameToLobbyBtn: document.getElementById('game-to-lobby-btn'),
       timerDisplay: document.getElementById('timer-display'),
-      resultsDiv: document.getElementById('results'),
-      resultMessage: document.getElementById('result-message'),
-      backToLobbyBtn: document.getElementById('back-to-lobby-btn'),
       cells: document.querySelectorAll('.cell'),
     };
 
@@ -103,19 +100,6 @@ export default class TicTacToeGameClient {
         this.socket.emit('leave_room', this.currentRoomId);
       }
       this.dom.gameDiv.classList.add('hidden');
-      this.dom.resultsDiv.classList.add('hidden');
-      this.dom.lobbyDiv.classList.remove('hidden');
-      this.currentRoomId = null;
-      this.myPlayer = null;
-
-      window.history.pushState(null, '', '/');
-    });
-
-    this.dom.backToLobbyBtn.addEventListener('click', () => {
-      if (this.currentRoomId) {
-        this.socket.emit('leave_room', this.currentRoomId);
-      }
-      this.dom.resultsDiv.classList.add('hidden');
       this.dom.lobbyDiv.classList.remove('hidden');
       this.currentRoomId = null;
       this.myPlayer = null;
